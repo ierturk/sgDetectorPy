@@ -1,0 +1,108 @@
+from threading import Thread
+import cv2 as cv
+import numpy as np
+from QueueFPS import QueueFPS
+from ortnet import OrtNet
+import queue
+
+
+class CaptureThread(Thread):
+    def __init__(self, cap):
+        super().__init__()
+        self.queue = QueueFPS()
+        self.cap = cv.VideoCapture(cap)
+        self.process = False
+
+    def run(self):
+        while self.process:
+            has_frame, frame = self.cap.read()
+            if not has_frame:
+                break
+            self.queue.put(frame)
+
+
+class ProcessChannel(Thread):
+    def __init__(self, cap):
+        super().__init__()
+        self.queue = QueueFPS()
+        self.process = False
+        self.capture = CaptureThread(cap)
+        self.ortNet = \
+            OrtNet("/home/ierturk/Work/REPOs/ssd/ssdIE/outputs/mobilenet_v2_ssd320_clk_trainval2019/model_040000.onnx",
+                   "/home/ierturk/Work/REPOs/ssd/yoloData/clk/train.json")
+
+    def run(self):
+        self.capture.process = True
+        self.capture.start()
+
+        while self.process:
+            frame = None
+            try:
+                frame = self.capture.queue.get_nowait()
+                self.capture.queue.queue.clear()
+
+            except queue.Empty:
+                pass
+
+            if not frame is None:
+                self.ortNet.set_input(frame)
+                self.ortNet.forward()
+                netIOs = self.ortNet.get_output()
+                netIOs.processedFrame = netIOs.originalFrame
+                self.post_process(netIOs)
+                self.queue.put(netIOs.processedFrame)
+
+        self.capture.process = False
+        self.capture.join()
+
+    def post_process(self, netIOs):
+        frame_height = netIOs.processedFrame.shape[0]
+        frame_width = netIOs.processedFrame.shape[1]
+
+        batches_scores, batches_boxes = netIOs.output
+        det = np.where(batches_scores[0, :, 1:] > self.ortNet.confThreshold)
+        class_ids = det[1].tolist()
+        confidences = batches_scores[0, det[0], det[1] + 1].tolist()
+        boxes = [[
+            int(box[0] * frame_width),
+            int(box[1] * frame_height),
+            int((box[2] - box[0]) * frame_width) + 1,
+            int((box[3] - box[1]) * frame_height) + 1,
+        ] for box in batches_boxes[0, det[0], :].tolist()]
+
+        indices = cv.dnn.NMSBoxes(boxes, confidences, self.ortNet.confThreshold, self.ortNet.nmsThreshold)
+        for i in indices:
+            i = i[0]
+            box = boxes[i]
+            left = box[0]
+            top = box[1]
+            width = box[2]
+            height = box[3]
+            self.draw_pred(netIOs, class_ids[i], confidences[i], left, top, left + width, top + height)
+
+        if self.queue.counter > 1:
+            label = 'Camera: %.2f FPS' % (self.capture.queue.getFPS())
+            cv.putText(netIOs.processedFrame, label, (20, 620), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0))
+
+            label = 'Network: %.2f FPS' % (self.queue.getFPS())
+            cv.putText(netIOs.processedFrame, label, (20, 660), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0))
+
+            label = 'Skipped frames: %d' % (self.capture.queue.counter - self.queue.counter)
+            cv.putText(netIOs.processedFrame, label, (20, 700), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0))
+
+    def draw_pred(self, netIOs, class_id, conf, left, top, right, bottom):
+        # Draw a bounding box.
+        cv.rectangle(netIOs.processedFrame, (left, top), (right, bottom), (0, 255, 0))
+
+        label = '%.2f' % conf
+
+        # Print a label of class.
+        if self.ortNet.classes:
+            assert (class_id < len(self.ortNet.classes))
+            label = '%s: %s' % (self.ortNet.classes[class_id], label)
+
+        labelSize, baseLine = cv.getTextSize(label, cv.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+        top = max(top, labelSize[1])
+        cv.rectangle(netIOs.processedFrame, (left, top - labelSize[1]), (left + labelSize[0], top + baseLine), (255, 255, 255),
+                     cv.FILLED)
+        cv.putText(netIOs.processedFrame, label, (left, top), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0))
