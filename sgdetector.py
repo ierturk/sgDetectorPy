@@ -8,11 +8,11 @@ class Detector(object):
     def __init__(self):
         super(Detector, self).__init__()
 
-        self.winName = 'Deep learning object detection in OpenCV'
+        self.winName = 'sgDetector'
         cv.namedWindow(self.winName, cv.WINDOW_NORMAL)
 
-        self.process_channel_right = ProcessChannel("rtsp://192.168.1.21/r.mp4")
-        self.process_channel_left = ProcessChannel("rtsp://192.168.1.21/VID_20190627_191450.mp4")
+        self.process_channel_right = ProcessChannel("http://localhost:8080/ccdff8d9bcfe4f8524bf36810019b860/mp4/pnOOUNJfOo/RightCam/s.mp4")
+        self.process_channel_left = ProcessChannel("http://localhost:8080/ccdff8d9bcfe4f8524bf36810019b860/mp4/pnOOUNJfOo/LeftCam/s.mp4")
 
     def run(self):
         while cv.waitKey(1) < 0:
@@ -36,6 +36,7 @@ def main():
 
     dt.run()
 
+    cv.destroyAllWindows()
     dt.process_channel_right.process = False
     dt.process_channel_left.process = False
     dt.process_channel_right.join()
