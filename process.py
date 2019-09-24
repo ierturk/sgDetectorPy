@@ -84,13 +84,13 @@ class ProcessChannel(Thread):
 
         if self.queue.counter > 1:
             label = 'Camera: %.2f FPS' % (self.capture.queue.getFPS())
-            cv.putText(netIOs.processedFrame, label, (5, 15), cv.FONT_HERSHEY_SIMPLEX, 0.5, (201, 161, 51))
+            cv.putText(netIOs.processedFrame, label, (320, 250), cv.FONT_HERSHEY_SIMPLEX, 0.5, (201, 161, 51))
 
             label = 'Network: %.2f FPS' % (self.queue.getFPS())
-            cv.putText(netIOs.processedFrame, label, (5, 30), cv.FONT_HERSHEY_SIMPLEX, 0.5, (201, 161, 51))
+            cv.putText(netIOs.processedFrame, label, (320, 265), cv.FONT_HERSHEY_SIMPLEX, 0.5, (201, 161, 51))
 
-            label = 'Skipped frames: %d' % (self.capture.queue.counter - self.queue.counter)
-            cv.putText(netIOs.processedFrame, label, (5, 45), cv.FONT_HERSHEY_SIMPLEX, 0.5, (201, 161, 51))
+            label = 'Skipped: %d' % (self.capture.queue.counter - self.queue.counter)
+            cv.putText(netIOs.processedFrame, label, (320, 280), cv.FONT_HERSHEY_SIMPLEX, 0.5, (201, 161, 51))
 
     def draw_pred(self, netIOs, class_id, conf, left, top, right, bottom):
         # Draw a bounding box.
