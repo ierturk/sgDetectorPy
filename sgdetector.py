@@ -23,7 +23,7 @@ class Detector(object):
                 image = np.concatenate((frameR, frameL), axis=0)
                 cv.imshow(self.winName, image)
 
-            except queue.Empty:
+            except Exception as e:
                 pass
 
 

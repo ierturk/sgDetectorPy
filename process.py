@@ -16,12 +16,17 @@ class CaptureThread(Thread):
 
     def run(self):
         while self.process:
-            has_frame, frame = self.cap.read()
-            if not has_frame:
-                break
-            self.queue.put(frame)
-            time.sleep(0.05)
-
+            try:
+                has_frame, frame = self.cap.read()
+                if not has_frame:
+                    break
+                self.queue.put(frame)
+                time.sleep(0.08)
+            except cv.error as e:
+                print("cv2.error:", e)
+            except Exception as e:
+                print("Exception:", e)
+                
 
 class ProcessChannel(Thread):
     def __init__(self, cap):
