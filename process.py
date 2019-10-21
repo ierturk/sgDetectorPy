@@ -13,20 +13,23 @@ class CaptureThread(Thread):
         self.queue = QueueFPS()
         self.cap = cv.VideoCapture(cap)
         self.process = False
+        self.frame_count = self.cap.get(cv.CAP_PROP_FRAME_COUNT)
+        self.current_frame = 0
 
     def run(self):
         while self.process:
+            self.cap.set(cv.CAP_PROP_POS_FRAMES, self.current_frame)
             try:
                 has_frame, frame = self.cap.read()
                 if not has_frame:
                     break
                 self.queue.put(frame)
-                time.sleep(0.08)
+                time.sleep(0.04)
             except cv.error as e:
                 print("cv2.error:", e)
             except Exception as e:
                 print("Exception:", e)
-                
+
 
 class ProcessChannel(Thread):
     def __init__(self, cap):
@@ -35,8 +38,8 @@ class ProcessChannel(Thread):
         self.process = False
         self.capture = CaptureThread(cap)
         self.ortNet = \
-            OrtNet("/home/ierturk/Work/REPOs/ssd/ssdIE/outputs/mobilenet_v2_ssd320_clk_trainval2019/model_040000.onnx",
-                   "/home/ierturk/Work/REPOs/ssd/yoloData/clk/train.json")
+            OrtNet("/home/ierturk/Work/REPOs/yolo/yoloIE/weights/export.onnx",
+                   "/home/ierturk/Work/REPOs/ml/data/ssdData/vott/vott-yolo-export/class.names")
 
     def run(self):
         self.capture.process = True
@@ -56,8 +59,8 @@ class ProcessChannel(Thread):
                 self.ortNet.forward()
                 netIOs = self.ortNet.get_output()
                 netIOs.processedFrame = cv.resize(netIOs.originalFrame, (512, 288))
-                self.post_process(netIOs)
                 self.queue.put(netIOs.processedFrame)
+                self.post_process(netIOs)
 
         self.capture.process = False
         self.capture.join()
@@ -67,15 +70,16 @@ class ProcessChannel(Thread):
         frame_width = netIOs.processedFrame.shape[1]
 
         batches_scores, batches_boxes = netIOs.output
-        det = np.where(batches_scores[0, :, 1:] > self.ortNet.confThreshold)
+        det = np.where(batches_scores > self.ortNet.confThreshold)
         class_ids = det[1].tolist()
-        confidences = batches_scores[0, det[0], det[1] + 1].tolist()
+        confidences = batches_scores[det[0], det[1]].tolist()
+        '''
         boxes = [[
-            int(box[0] * frame_width),
-            int(box[1] * frame_height),
-            int((box[2] - box[0]) * frame_width) + 1,
-            int((box[3] - box[1]) * frame_height) + 1,
-        ] for box in batches_boxes[0, det[0], :].tolist()]
+            int((box[0] - box[2]/2) * frame_width),
+            int((box[1] - box[3]/2) * frame_height),
+            int(box[2] * frame_width),
+            int(box[3] * frame_height),
+        ] for box in batches_boxes[det[0], :].tolist()]
 
         indices = cv.dnn.NMSBoxes(boxes, confidences, self.ortNet.confThreshold, self.ortNet.nmsThreshold)
         for i in indices:
@@ -85,7 +89,8 @@ class ProcessChannel(Thread):
             top = box[1]
             width = box[2]
             height = box[3]
-            self.draw_pred(netIOs, class_ids[i], confidences[i], left, top, left + width, top + height)
+            self.draw_pred(netIOs, class_ids[i] + 1, confidences[i], left, top, left + width, top + height)
+        '''
 
         if self.queue.counter > 1:
             label = 'Camera: %.2f FPS' % (self.capture.queue.getFPS())
@@ -110,6 +115,7 @@ class ProcessChannel(Thread):
 
         labelSize, baseLine = cv.getTextSize(label, cv.FONT_HERSHEY_SIMPLEX, 0.5, 1)
         top = max(top, labelSize[1])
-        cv.rectangle(netIOs.processedFrame, (left, top - labelSize[1]), (left + labelSize[0], top + baseLine), (255, 255, 255),
+        cv.rectangle(netIOs.processedFrame, (left, top - labelSize[1]), (left + labelSize[0], top + baseLine),
+                     (255, 255, 255),
                      cv.FILLED)
         cv.putText(netIOs.processedFrame, label, (left, top), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0))

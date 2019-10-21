@@ -1,4 +1,3 @@
-import queue
 import cv2 as cv
 import numpy as np
 from process import ProcessChannel
@@ -10,14 +9,24 @@ class Detector(object):
 
         self.winName = 'sgDetector'
         cv.namedWindow(self.winName, cv.WINDOW_NORMAL)
+        cv.createTrackbar('pos', self.winName, 0, 19999, self.callback)
+        self.process_channel_right = ProcessChannel("/home/ierturk/Work/REPOs/ml/data/sgDetector/Video/2019-10-11T07-30-00-right.mp4")
+        self.process_channel_left = ProcessChannel("/home/ierturk/Work/REPOs/ml/data/sgDetector/Video/2019-10-11T07-30-01-left.mp4")
 
-        self.process_channel_right = ProcessChannel("http://localhost:8080/ccdff8d9bcfe4f8524bf36810019b860/mp4/pnOOUNJfOo/RightCam/s.mp4")
-        self.process_channel_left = ProcessChannel("http://localhost:8080/ccdff8d9bcfe4f8524bf36810019b860/mp4/pnOOUNJfOo/LeftCam/s.mp4")
+    def callback(self, pos):
+        print(pos)
+        self.process_channel_right.capture.current_frame = \
+            int(pos * self.process_channel_right.capture.frame_count / 20000)
+        self.process_channel_left.capture.current_frame = \
+            int(pos * self.process_channel_left.capture.frame_count / 20000)
 
     def run(self):
-        while cv.waitKey(1) < 0:
-            try:
+        while True:
+            ch = cv.waitKeyEx(1)
+            if ch == 27:
+                break
 
+            try:
                 frameR = self.process_channel_right.queue.get_nowait()
                 frameL = self.process_channel_left.queue.get_nowait()
                 image = np.concatenate((frameR, frameL), axis=0)

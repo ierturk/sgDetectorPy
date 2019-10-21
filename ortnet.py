@@ -1,7 +1,5 @@
 import onnxruntime as rt
 import cv2 as cv
-import json
-
 
 class NetIOs:
     def __init__(self):
@@ -21,13 +19,12 @@ class OrtNet:
         self.input_name = self.sess.get_inputs()[0].name
         self.netIOs = NetIOs()
 
-        self.confThreshold = 0.5
+        self.confThreshold = 0.95
         self.nmsThreshold = 0.4
 
-        self.classes = None
-        with open(classes_path, 'rt') as f:
-            json_data = json.load(f)
-            self.classes = [cat['name'] for cat in json_data['categories']]
+        with open(classes_path, 'r') as f:
+            names = f.read().split('\n')
+            self.classes = list(filter(None, names))  # filter removes empty strings (such as last line)
 
     def set_input(self, frame):
         self.netIOs.originalFrame = frame
