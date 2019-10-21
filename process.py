@@ -2,9 +2,9 @@ from threading import Thread
 import cv2 as cv
 import numpy as np
 from QueueFPS import QueueFPS
-from ortnet import OrtNet
 import queue
 import time
+from ocvnet import OCVNet
 
 
 class CaptureThread(Thread):
@@ -37,8 +37,10 @@ class ProcessChannel(Thread):
         self.queue = QueueFPS()
         self.process = False
         self.capture = CaptureThread(cap)
-        self.ortNet = \
-            OrtNet("/home/ierturk/Work/REPOs/yolo/yoloIE/weights/export.onnx",
+        self.net = \
+            OCVNet("/home/ierturk/Work/REPOs/yolo/yoloIE/weights/converted.weights",
+                   "/home/ierturk/Work/REPOs/ml/data/ssdData/vott/vott-yolo-export/yolov3-tiny.cfg",
+                   "darknet",
                    "/home/ierturk/Work/REPOs/ml/data/ssdData/vott/vott-yolo-export/class.names")
 
     def run(self):
@@ -55,12 +57,12 @@ class ProcessChannel(Thread):
                 pass
 
             if not frame is None:
-                self.ortNet.set_input(frame)
-                self.ortNet.forward()
-                netIOs = self.ortNet.get_output()
+                self.net.set_input(frame)
+                self.net.forward()
+                netIOs = self.net.get_output()
                 netIOs.processedFrame = cv.resize(netIOs.originalFrame, (512, 288))
-                self.queue.put(netIOs.processedFrame)
                 self.post_process(netIOs)
+                self.queue.put(netIOs.processedFrame)
 
         self.capture.process = False
         self.capture.join()
@@ -69,19 +71,26 @@ class ProcessChannel(Thread):
         frame_height = netIOs.processedFrame.shape[0]
         frame_width = netIOs.processedFrame.shape[1]
 
-        batches_scores, batches_boxes = netIOs.output
-        det = np.where(batches_scores > self.ortNet.confThreshold)
-        class_ids = det[1].tolist()
-        confidences = batches_scores[det[0], det[1]].tolist()
-        '''
-        boxes = [[
-            int((box[0] - box[2]/2) * frame_width),
-            int((box[1] - box[3]/2) * frame_height),
-            int(box[2] * frame_width),
-            int(box[3] * frame_height),
-        ] for box in batches_boxes[det[0], :].tolist()]
+        class_ids = []
+        confidences = []
+        boxes = []
+        for out in netIOs.output:
+            for detection in out:
+                scores = detection[5:]
+                classId = np.argmax(scores)
+                confidence = scores[classId]
+                if confidence > self.net.confThreshold:
+                    center_x = int(detection[0] * frame_width)
+                    center_y = int(detection[1] * frame_height)
+                    width = int(detection[2] * frame_width)
+                    height = int(detection[3] * frame_height)
+                    left = int(center_x - width / 2)
+                    top = int(center_y - height / 2)
+                    class_ids.append(classId)
+                    confidences.append(float(confidence))
+                    boxes.append([left, top, width, height])
 
-        indices = cv.dnn.NMSBoxes(boxes, confidences, self.ortNet.confThreshold, self.ortNet.nmsThreshold)
+        indices = cv.dnn.NMSBoxes(boxes, confidences, self.net.confThreshold, self.net.nmsThreshold)
         for i in indices:
             i = i[0]
             box = boxes[i]
@@ -89,8 +98,7 @@ class ProcessChannel(Thread):
             top = box[1]
             width = box[2]
             height = box[3]
-            self.draw_pred(netIOs, class_ids[i] + 1, confidences[i], left, top, left + width, top + height)
-        '''
+            self.draw_pred(netIOs, class_ids[i], confidences[i], left, top, left + width, top + height)
 
         if self.queue.counter > 1:
             label = 'Camera: %.2f FPS' % (self.capture.queue.getFPS())
@@ -109,9 +117,9 @@ class ProcessChannel(Thread):
         label = '%.2f' % conf
 
         # Print a label of class.
-        if self.ortNet.classes:
-            assert (class_id < len(self.ortNet.classes))
-            label = '%s: %s' % (self.ortNet.classes[class_id], label)
+        if self.net.classes:
+            assert (class_id < len(self.net.classes))
+            label = '%s: %s' % (self.net.classes[class_id], label)
 
         labelSize, baseLine = cv.getTextSize(label, cv.FONT_HERSHEY_SIMPLEX, 0.5, 1)
         top = max(top, labelSize[1])

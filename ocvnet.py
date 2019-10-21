@@ -16,6 +16,8 @@ class OCVNet:
         self.net.setPreferableTarget(cv.dnn.DNN_TARGET_CPU)
         self.out_names = self.net.getUnconnectedOutLayersNames()
 
+        self.last_layer = self.net.getLayer(self.net.getLayerId(self.net.getLayerNames()[-1]))
+
         self.netIOs = NetIOs()
         self.confThreshold = 0.5
         self.nmsThreshold = 0.4
@@ -30,11 +32,11 @@ class OCVNet:
             frame,
             1.0,
             (416, 416),
-            (123, 117, 104),
+            None,
             True,
             False,
             cv.CV_8U)
-        self.net.setInput(self.netIOs.input, scalefactor=0.00392)
+        self.net.setInput(self.netIOs.input, scalefactor=0.005)
 
     def forward(self):
         self.netIOs.output = self.net.forward(self.out_names)
