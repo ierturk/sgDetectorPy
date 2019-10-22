@@ -21,15 +21,15 @@ class OCVNet:
 
         self.netIOs = NetIOs()
         self.confThreshold = 0.3
-        self.nmsThreshold = 0.4
+        self.nmsThreshold = 0.5
 
         with open(classes_path, 'r') as f:
             names = f.read().split('\n')
             self.classes = list(filter(None, names))
 
     def set_input(self, frame):
-        self.netIOs.originalFrame = frame
         frame = letterbox(frame, (320, 320), mode='rect')[0]
+        self.netIOs.originalFrame = frame
         self.netIOs.input = cv.dnn.blobFromImage(
             frame,
             1.0,
