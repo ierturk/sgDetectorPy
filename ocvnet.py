@@ -1,4 +1,5 @@
 import cv2 as cv
+from dataset import letterbox
 
 
 class NetIOs:
@@ -19,7 +20,7 @@ class OCVNet:
         self.last_layer = self.net.getLayer(self.net.getLayerId(self.net.getLayerNames()[-1]))
 
         self.netIOs = NetIOs()
-        self.confThreshold = 0.5
+        self.confThreshold = 0.3
         self.nmsThreshold = 0.4
 
         with open(classes_path, 'r') as f:
@@ -28,10 +29,11 @@ class OCVNet:
 
     def set_input(self, frame):
         self.netIOs.originalFrame = frame
+        frame = letterbox(frame, (320, 320), mode='rect')[0]
         self.netIOs.input = cv.dnn.blobFromImage(
             frame,
             1.0,
-            (320, 320),
+            None,
             None,
             True,
             False,

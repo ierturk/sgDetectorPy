@@ -1,5 +1,6 @@
 import onnxruntime as rt
 import cv2 as cv
+from dataset import letterbox
 
 
 class NetIOs:
@@ -20,8 +21,8 @@ class OrtNet:
         self.input_name = self.sess.get_inputs()[0].name
         self.netIOs = NetIOs()
 
-        self.confThreshold = 0.2
-        self.nmsThreshold = 0.4
+        self.confThreshold = 0.3
+        self.nmsThreshold = 0.5
 
         with open(classes_path, 'r') as f:
             names = f.read().split('\n')
@@ -29,10 +30,11 @@ class OrtNet:
 
     def set_input(self, frame):
         self.netIOs.originalFrame = frame
+        frame = letterbox(frame, (320, 320), mode='rect')[0]
         self.netIOs.input = cv.dnn.blobFromImage(
             frame,
             1/255,
-            (320, 320),
+            None,
             None,
             True,
             False,
