@@ -60,7 +60,7 @@ class ProcessChannel(Thread):
                 self.net.set_input(frame)
                 self.net.forward()
                 netIOs = self.net.get_output()
-                netIOs.processedFrame = cv.resize(netIOs.originalFrame, (512, 512))
+                netIOs.processedFrame = cv.resize(netIOs.originalFrame, (512, 288))
                 self.post_process(netIOs)
                 self.queue.put(netIOs.processedFrame)
 
@@ -81,9 +81,9 @@ class ProcessChannel(Thread):
                 confidence = scores[classId]
                 if confidence > self.net.confThreshold:
                     center_x = int(detection[0] * frame_width)
-                    center_y = int(detection[1] * frame_height)
+                    center_y = int((detection[1] - 70/320) * frame_height * 320/180)
                     width = int(detection[2] * frame_width)
-                    height = int(detection[3] * frame_height)
+                    height = int(detection[3] * frame_height * 320/180)
                     left = int(center_x - width / 2)
                     top = int(center_y - height / 2)
                     class_ids.append(classId)

@@ -28,8 +28,8 @@ class OCVNet:
             self.classes = list(filter(None, names))
 
     def set_input(self, frame):
-        frame = letterbox(frame, (320, 320), mode='rect')[0]
         self.netIOs.originalFrame = frame
+        frame = letterbox(frame, (320, 320), mode='rect')[0]
         self.netIOs.input = cv.dnn.blobFromImage(
             frame,
             1.0,
