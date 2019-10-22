@@ -1,6 +1,7 @@
 import onnxruntime as rt
 import cv2 as cv
 
+
 class NetIOs:
     def __init__(self):
         self.input = None
@@ -19,20 +20,20 @@ class OrtNet:
         self.input_name = self.sess.get_inputs()[0].name
         self.netIOs = NetIOs()
 
-        self.confThreshold = 0.95
+        self.confThreshold = 0.2
         self.nmsThreshold = 0.4
 
         with open(classes_path, 'r') as f:
             names = f.read().split('\n')
-            self.classes = list(filter(None, names))  # filter removes empty strings (such as last line)
+            self.classes = list(filter(None, names))
 
     def set_input(self, frame):
         self.netIOs.originalFrame = frame
         self.netIOs.input = cv.dnn.blobFromImage(
             frame,
-            1.0,
+            1/255,
             (320, 320),
-            (123, 117, 104),
+            None,
             True,
             False,
             cv.CV_32F)
