@@ -31,12 +31,12 @@ class OCVNet:
         self.netIOs.input = cv.dnn.blobFromImage(
             frame,
             1.0,
-            (416, 416),
+            (320, 320),
             None,
             True,
             False,
             cv.CV_8U)
-        self.net.setInput(self.netIOs.input, scalefactor=0.005)
+        self.net.setInput(self.netIOs.input, scalefactor=1/256)
 
     def forward(self):
         self.netIOs.output = self.net.forward(self.out_names)

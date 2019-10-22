@@ -14,7 +14,7 @@ class Detector(object):
         self.process_channel_left = ProcessChannel("/home/ierturk/Work/REPOs/ml/data/sgDetector/Video/2019-10-11T07-30-01-left.mp4")
 
     def callback(self, pos):
-        print(pos)
+        # print(pos)
         self.process_channel_right.capture.current_frame = \
             int(pos * self.process_channel_right.capture.frame_count / 20000)
         self.process_channel_left.capture.current_frame = \
