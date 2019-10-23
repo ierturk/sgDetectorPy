@@ -27,7 +27,9 @@ class CaptureThread(Thread):
             try:
                 has_frame, frame = self.cap.read()
                 if not has_frame:
-                    break
+                    self.cap.set(cv.CAP_PROP_POS_FRAMES, 0)
+                    continue
+
                 self.queue.put(frame)
                 time.sleep(0.04)
             except cv.error as e:
@@ -125,6 +127,7 @@ class ProcessChannel(Thread):
         if self.net.classes:
             assert (class_id < len(self.net.classes))
             label = '%s: %s' % (self.net.classes[class_id], label)
+            print(label)
 
         labelSize, baseLine = cv.getTextSize(label, cv.FONT_HERSHEY_SIMPLEX, 0.5, 1)
         top = max(top, labelSize[1])

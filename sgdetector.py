@@ -28,7 +28,7 @@ class Detector(object):
             if ch == 27:
                 break
             elif ch == 32:
-                print('space bar')
+                # print('space bar')
                 self.stat = not self.stat
                 self.process_channel_right.capture.stat = self.stat
                 self.process_channel_left.capture.stat = self.stat
