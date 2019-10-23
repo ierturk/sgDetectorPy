@@ -9,22 +9,35 @@ class Detector(object):
 
         self.winName = 'sgDetector'
         cv.namedWindow(self.winName, cv.WINDOW_NORMAL)
-        cv.createTrackbar('pos', self.winName, 0, 19999, self.callback)
+        cv.createTrackbar('pos', self.winName, 0, 19999, self.callbackTrackBar)
         self.process_channel_right = ProcessChannel("/home/ierturk/Work/REPOs/ml/data/sgDetector/Video/2019-10-11T07-30-00-right.mp4")
         self.process_channel_left = ProcessChannel("/home/ierturk/Work/REPOs/ml/data/sgDetector/Video/2019-10-11T07-30-01-left.mp4")
+        self.stat = False
 
-    def callback(self, pos):
+    def callbackTrackBar(self, pos):
         # print(pos)
-        self.process_channel_right.capture.current_frame = \
-            int(pos * self.process_channel_right.capture.frame_count / 20000)
-        self.process_channel_left.capture.current_frame = \
-            int(pos * self.process_channel_left.capture.frame_count / 20000)
+        if self.stat:
+            self.process_channel_right.capture.current_frame = \
+                int(pos * self.process_channel_right.capture.frame_count / 20000)
+            self.process_channel_left.capture.current_frame = \
+                int(pos * self.process_channel_left.capture.frame_count / 20000)
 
     def run(self):
         while True:
             ch = cv.waitKeyEx(1)
             if ch == 27:
                 break
+            elif ch == 32:
+                print('space bar')
+                self.stat = not self.stat
+                self.process_channel_right.capture.stat = self.stat
+                self.process_channel_left.capture.stat = self.stat
+
+            if not self.stat:
+                cv.setTrackbarPos('pos',
+                                  'sgDetector',
+                                  int(19999 * self.process_channel_right.capture.current_frame
+                                      / self.process_channel_right.capture.frame_count))
 
             try:
                 frameR = self.process_channel_right.queue.get_nowait()

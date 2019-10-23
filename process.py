@@ -15,10 +15,15 @@ class CaptureThread(Thread):
         self.process = False
         self.frame_count = self.cap.get(cv.CAP_PROP_FRAME_COUNT)
         self.current_frame = 0
+        self.stat = False
 
     def run(self):
         while self.process:
-            self.cap.set(cv.CAP_PROP_POS_FRAMES, self.current_frame)
+            if self.stat:
+                self.cap.set(cv.CAP_PROP_POS_FRAMES, self.current_frame)
+            else:
+                self.current_frame = self.cap.get(cv.CAP_PROP_POS_FRAMES)
+
             try:
                 has_frame, frame = self.cap.read()
                 if not has_frame:
