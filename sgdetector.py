@@ -10,8 +10,8 @@ class Detector(object):
         self.winName = 'sgDetector'
         cv.namedWindow(self.winName, cv.WINDOW_NORMAL)
         cv.createTrackbar('pos', self.winName, 0, 19999, self.callbackTrackBar)
-        self.process_channel_right = ProcessChannel("/home/ierturk/Work/REPOs/ml/data/sgDetector/Video/2019-10-11T07-30-00-right.mp4")
-        self.process_channel_left = ProcessChannel("/home/ierturk/Work/REPOs/ml/data/sgDetector/Video/2019-10-11T07-30-01-left.mp4")
+        self.process_channel_right = ProcessChannel("/home/ierturk/Work/REPOs/ml/data/sgDetector/Video/2019-10-10T18-15-01-right.mp4")
+        self.process_channel_left = ProcessChannel("/home/ierturk/Work/REPOs/ml/data/sgDetector/Video/2019-10-10T18-15-02-left.mp4")
         self.stat = False
 
     def callbackTrackBar(self, pos):

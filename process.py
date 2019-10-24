@@ -105,7 +105,9 @@ class ProcessChannel(Thread):
             top = box[1]
             width = box[2]
             height = box[3]
-            self.draw_pred(netIOs, class_ids[i], confidences[i], left, top, left + width, top + height)
+
+            if 80 < left < 432:
+                self.draw_pred(netIOs, class_ids[i], confidences[i], left, top, left + width, top + height)
 
         if self.queue.counter > 1:
             label = 'Camera: %.2f FPS' % (self.capture.queue.getFPS())
