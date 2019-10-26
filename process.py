@@ -39,8 +39,9 @@ class CaptureThread(Thread):
 
 
 class ProcessChannel(Thread):
-    def __init__(self, cap):
+    def __init__(self, cap, side):
         super().__init__()
+        self.side = side
         self.queue = QueueFPS()
         self.process = False
         self.capture = CaptureThread(cap)
@@ -129,7 +130,7 @@ class ProcessChannel(Thread):
         if self.net.classes:
             assert (class_id < len(self.net.classes))
             label = '%s: %s' % (self.net.classes[class_id], label)
-            print(label)
+            print('{} -> {}'.format(self.side, label))
 
         labelSize, baseLine = cv.getTextSize(label, cv.FONT_HERSHEY_SIMPLEX, 0.5, 1)
         top = max(top, labelSize[1])
